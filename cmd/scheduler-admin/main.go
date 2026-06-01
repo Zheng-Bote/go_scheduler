@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os/user"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -48,7 +49,8 @@ func main() {
 	}
 
 	ui.URL.SetPlaceHolder("http://localhost:8080")
-	ui.User.SetPlaceHolder("admin username")
+	ui.User.SetText(getHeloUser())
+	ui.User.Disable()
 	ui.Token.SetPlaceHolder("auth token")
 
 	// Form for connection settings
@@ -112,6 +114,16 @@ func main() {
 
 	myWindow.SetContent(content)
 	myWindow.ShowAndRun()
+}
+
+func getHeloUser() string {
+	u, err := user.Current()
+	if err != nil {
+		return ""
+	}
+	// On Windows, Username can be in the format "DOMAIN\Username". We want just "Username".
+	parts := strings.Split(u.Username, "\\")
+	return parts[len(parts)-1]
 }
 
 func (ui *AdminUI) loadJobs() {

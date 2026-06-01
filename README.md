@@ -38,7 +38,10 @@ go build -o ./cmd/scheduler/scheduler ./cmd/scheduler
 go build -o ./cmd/encrypt-config/encrypt-config ./cmd/encrypt-config
 go build -o ./cmd/job1/job1 ./cmd/job1
 go build -o ./cmd/job2/job2 ./cmd/job2
+# Linux
 go build -o ./cmd/scheduler-admin/scheduler-admin ./cmd/scheduler-admin
+# Windows
+go build -v -ldflags="-H=windowsgui" -o .\cmd\scheduler-admin\scheduler-admin.exe .\cmd\scheduler-admin\main.go
 ```
 
 ### 3. Database Setup
