@@ -1,0 +1,18 @@
+{
+  "host": "localhost",
+  "port": 5432,
+  "user": "scheduler_user",
+  "password": "your_secure_password",
+  "database": "scheduler_db",
+  "log_level": "DEBUG",
+  "admins": [
+    {
+      "username": "admin1",
+      "token": "secret_token_123"
+    },
+    {
+      "username": "win_client",
+      "token": "helo_auth_token_999"
+    }
+  ]
+}

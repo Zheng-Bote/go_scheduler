@@ -1,0 +1,52 @@
+package config
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"go-scheduler/internal/crypto"
+)
+
+// AdminUser defines a simple administrative user for API access
+type AdminUser struct {
+	Username string `json:"username"`
+	Token    string `json:"token"` // This will be used for the HELO auth
+}
+
+// DBConfig holds the PostgreSQL connection parameters
+type DBConfig struct {
+	Host     string      `json:"host"`
+	Port     int         `json:"port"`
+	User     string      `json:"user"`
+	Password string      `json:"password"`
+	Database string      `json:"database"`
+	LogLevel string      `json:"log_level"`
+	Admins   []AdminUser `json:"admins"`
+}
+
+// LoadEncryptedConfig reads an encrypted JSON file and decrypts it into DBConfig
+func LoadEncryptedConfig(filePath string, password string) (*DBConfig, error) {
+	encryptedData, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read encrypted config file: %w", err)
+	}
+
+	decryptedData, err := crypto.Decrypt(encryptedData, []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt config: %w", err)
+	}
+
+	var dbConfig DBConfig
+	if err := json.Unmarshal(decryptedData, &dbConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse decrypted config JSON: %w", err)
+	}
+
+	return &dbConfig, nil
+}
+
+// GetDSN returns the PostgreSQL connection string
+func (c *DBConfig) GetDSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		c.User, c.Password, c.Host, c.Port, c.Database)
+}
