@@ -127,32 +127,46 @@ func getHeloUser() string {
 }
 
 func (ui *AdminUI) loadJobs() {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", ui.URL.Text+"/admin/jobs", nil)
-	if err != nil {
-		dialog.ShowError(err, ui.Window)
-		return
-	}
-	req.SetBasicAuth(ui.User.Text, ui.Token.Text)
+	go func() {
+		// Require Windows Hello verification (no-op on non-Windows)
+		verified, err := verifyWindowsHello(ui.Window)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("Windows Hello failed: %w", err), ui.Window)
+			return
+		}
+		if !verified {
+			return
+		}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		dialog.ShowError(err, ui.Window)
-		return
-	}
-	defer resp.Body.Close()
+		client := &http.Client{}
+		req, err := http.NewRequest("GET", ui.URL.Text+"/admin/jobs", nil)
+		if err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		req.SetBasicAuth(ui.User.Text, ui.Token.Text)
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		dialog.ShowInformation("Error", fmt.Sprintf("Failed to load jobs: %s", string(body)), ui.Window)
-		return
-	}
+		resp, err := client.Do(req)
+		if err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(&ui.Programs); err != nil {
-		dialog.ShowError(err, ui.Window)
-		return
-	}
-	ui.JobTable.Refresh()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			dialog.ShowInformation("Error", fmt.Sprintf("Failed to load jobs: %s", string(body)), ui.Window)
+			return
+		}
+
+		var programs []ScheduledProgram
+		if err := json.NewDecoder(resp.Body).Decode(&programs); err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		ui.Programs = programs
+		ui.JobTable.Refresh()
+	}()
 }
 
 func (ui *AdminUI) showJobEditor(p ScheduledProgram) {

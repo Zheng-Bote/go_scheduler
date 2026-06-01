@@ -41,7 +41,7 @@ go build -o ./cmd/job2/job2 ./cmd/job2
 # Linux
 go build -o ./cmd/scheduler-admin/scheduler-admin ./cmd/scheduler-admin
 # Windows
-go build -v -ldflags="-H=windowsgui" -o .\cmd\scheduler-admin\scheduler-admin.exe .\cmd\scheduler-admin\main.go
+go build -v -ldflags="-H=windowsgui" -o .\cmd\scheduler-admin\scheduler-admin.exe .\cmd\scheduler-admin\main.go .\cmd\scheduler-admin\hello_windows.go
 ```
 
 ### 3. Database Setup

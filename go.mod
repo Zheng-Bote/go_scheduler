@@ -4,8 +4,10 @@ go 1.25.0
 
 require (
 	fyne.io/fyne/v2 v2.7.4
+	github.com/go-ole/go-ole v1.2.6
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/saltosystems/winrt-go v0.0.0-20260513072510-45f10383b2b8
 	golang.org/x/crypto v0.52.0
 	golang.org/x/term v0.43.0
 )
