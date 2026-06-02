@@ -84,6 +84,9 @@ To prevent plaintext credentials from being stored on disk, configurations are e
     *   `/admin/jobs` (Authenticated GET): Retrieves all scheduled jobs from the database.
     *   `/admin/update-jobs` (Authenticated POST): Upserts a list of jobs into the DB and reloads the cron configuration.
     *   `/admin/delete-job?name=<job_name>` (Authenticated DELETE): Removes a job configuration and reloads the cron configuration.
+    *   `/admin/logs/system` (Authenticated GET): Downloads system logs as JSON (accepts optional `from` and `to` query parameters in RFC3339 or YYYY-MM-DD format).
+    *   `/admin/logs/job-audit` (Authenticated GET): Downloads job audit logs as JSON (accepts optional `from` and `to` query parameters).
+    *   `/admin/logs/admin-audit` (Authenticated GET): Downloads administrative audit logs as JSON (accepts optional `from` and `to` query parameters).
 *   **Security**: Uses Basic Authentication. It verifies the credentials against the admin users configured in the encrypted `config.json` loaded at startup.
 
 ### 2.7 Cross-Platform GUI Admin Client (`cmd/scheduler-admin`)

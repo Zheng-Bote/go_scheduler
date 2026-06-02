@@ -190,3 +190,134 @@ func (r *Repository) CreateStatusEvent(ctx context.Context, runID int, status st
 	_, err := r.Pool.Exec(ctx, "INSERT INTO job_status_events (run_id, status, message, progress) VALUES ($1, $2, $3, $4)", runID, status, message, progress)
 	return err
 }
+
+// SystemLog represents a log entry in the system_logs table
+type SystemLog struct {
+	ID        int       `json:"id"`
+	Level     string    `json:"level"`
+	Component string    `json:"component"`
+	Message   string    `json:"message"`
+	TS        time.Time `json:"ts"`
+}
+
+// JobAuditLog represents a log entry in the job_audit_logs table
+type JobAuditLog struct {
+	ID      int       `json:"id"`
+	RunID   int       `json:"run_id"`
+	Message string    `json:"message"`
+	TS      time.Time `json:"ts"`
+}
+
+// AdminAuditLog represents a log entry in the admin_audit_logs table
+type AdminAuditLog struct {
+	ID       int             `json:"id"`
+	Username string          `json:"username"`
+	Action   string          `json:"action"`
+	Details  json.RawMessage `json:"details"`
+	TS       time.Time       `json:"ts"`
+}
+
+// GetSystemLogs retrieves system logs, optionally filtered by a date range
+func (r *Repository) GetSystemLogs(ctx context.Context, from, to *time.Time) ([]SystemLog, error) {
+	query := "SELECT id, level, component, message, ts FROM system_logs WHERE 1=1"
+	var args []interface{}
+	placeholderIdx := 1
+
+	if from != nil {
+		query += fmt.Sprintf(" AND ts >= $%d", placeholderIdx)
+		args = append(args, *from)
+		placeholderIdx++
+	}
+	if to != nil {
+		query += fmt.Sprintf(" AND ts <= $%d", placeholderIdx)
+		args = append(args, *to)
+		placeholderIdx++
+	}
+	query += " ORDER BY ts DESC"
+
+	rows, err := r.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []SystemLog
+	for rows.Next() {
+		var l SystemLog
+		if err := rows.Scan(&l.ID, &l.Level, &l.Component, &l.Message, &l.TS); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, nil
+}
+
+// GetJobAuditLogs retrieves job audit logs, optionally filtered by a date range
+func (r *Repository) GetJobAuditLogs(ctx context.Context, from, to *time.Time) ([]JobAuditLog, error) {
+	query := "SELECT id, run_id, message, ts FROM job_audit_logs WHERE 1=1"
+	var args []interface{}
+	placeholderIdx := 1
+
+	if from != nil {
+		query += fmt.Sprintf(" AND ts >= $%d", placeholderIdx)
+		args = append(args, *from)
+		placeholderIdx++
+	}
+	if to != nil {
+		query += fmt.Sprintf(" AND ts <= $%d", placeholderIdx)
+		args = append(args, *to)
+		placeholderIdx++
+	}
+	query += " ORDER BY ts DESC"
+
+	rows, err := r.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []JobAuditLog
+	for rows.Next() {
+		var l JobAuditLog
+		if err := rows.Scan(&l.ID, &l.RunID, &l.Message, &l.TS); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, nil
+}
+
+// GetAdminAuditLogs retrieves administrative audit logs, optionally filtered by a date range
+func (r *Repository) GetAdminAuditLogs(ctx context.Context, from, to *time.Time) ([]AdminAuditLog, error) {
+	query := "SELECT id, username, action, details, ts FROM admin_audit_logs WHERE 1=1"
+	var args []interface{}
+	placeholderIdx := 1
+
+	if from != nil {
+		query += fmt.Sprintf(" AND ts >= $%d", placeholderIdx)
+		args = append(args, *from)
+		placeholderIdx++
+	}
+	if to != nil {
+		query += fmt.Sprintf(" AND ts <= $%d", placeholderIdx)
+		args = append(args, *to)
+		placeholderIdx++
+	}
+	query += " ORDER BY ts DESC"
+
+	rows, err := r.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var logs []AdminAuditLog
+	for rows.Next() {
+		var l AdminAuditLog
+		if err := rows.Scan(&l.ID, &l.Username, &l.Action, &l.Details, &l.TS); err != nil {
+			return nil, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, nil
+}

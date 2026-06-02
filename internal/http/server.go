@@ -52,6 +52,9 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin/update-jobs", s.handleUpdateJobs)
 	mux.HandleFunc("/admin/jobs", s.handleGetJobs)
 	mux.HandleFunc("/admin/delete-job", s.handleDeleteJob)
+	mux.HandleFunc("/admin/logs/system", s.handleDownloadSystemLogs)
+	mux.HandleFunc("/admin/logs/job-audit", s.handleDownloadJobAuditLogs)
+	mux.HandleFunc("/admin/logs/admin-audit", s.handleDownloadAdminAuditLogs)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.Port),
@@ -211,4 +214,168 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// parseDateParam parses a date string from RFC3339 or YYYY-MM-DD format.
+// Returns nil, nil if the input string is empty.
+func parseDateParam(val string) (*time.Time, error) {
+	if val == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339, val)
+	if err == nil {
+		return &t, nil
+	}
+	t, err = time.Parse("2006-01-02", val)
+	if err == nil {
+		return &t, nil
+	}
+	return nil, err
+}
+
+// handleDownloadSystemLogs retrieves system logs within an optional date range
+// and streams them as a JSON file download.
+func (s *Server) handleDownloadSystemLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	from, err := parseDateParam(r.URL.Query().Get("from"))
+	if err != nil {
+		http.Error(w, "Invalid 'from' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	to, err := parseDateParam(r.URL.Query().Get("to"))
+	if err != nil {
+		http.Error(w, "Invalid 'to' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	if to != nil && len(r.URL.Query().Get("to")) == 10 {
+		*to = to.Add(24*time.Hour - time.Second)
+	}
+
+	logs, err := s.Repo.GetSystemLogs(r.Context(), from, to)
+	if err != nil {
+		s.Repo.LogAdminAction(r.Context(), username, "download_system_logs_fail", err.Error())
+		http.Error(w, "Failed to retrieve system logs", http.StatusInternalServerError)
+		return
+	}
+
+	s.Repo.LogAdminAction(r.Context(), username, "download_system_logs_success", map[string]interface{}{
+		"from":  from,
+		"to":    to,
+		"count": len(logs),
+	})
+
+	w.Header().Set("Content-Disposition", "attachment; filename=system_logs.json")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// handleDownloadJobAuditLogs retrieves job audit logs within an optional date range
+// and streams them as a JSON file download.
+func (s *Server) handleDownloadJobAuditLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	from, err := parseDateParam(r.URL.Query().Get("from"))
+	if err != nil {
+		http.Error(w, "Invalid 'from' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	to, err := parseDateParam(r.URL.Query().Get("to"))
+	if err != nil {
+		http.Error(w, "Invalid 'to' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	if to != nil && len(r.URL.Query().Get("to")) == 10 {
+		*to = to.Add(24*time.Hour - time.Second)
+	}
+
+	logs, err := s.Repo.GetJobAuditLogs(r.Context(), from, to)
+	if err != nil {
+		s.Repo.LogAdminAction(r.Context(), username, "download_job_audit_logs_fail", err.Error())
+		http.Error(w, "Failed to retrieve job audit logs", http.StatusInternalServerError)
+		return
+	}
+
+	s.Repo.LogAdminAction(r.Context(), username, "download_job_audit_logs_success", map[string]interface{}{
+		"from":  from,
+		"to":    to,
+		"count": len(logs),
+	})
+
+	w.Header().Set("Content-Disposition", "attachment; filename=job_audit_logs.json")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
+}
+
+// handleDownloadAdminAuditLogs retrieves administrative audit logs within an optional date range
+// and streams them as a JSON file download.
+func (s *Server) handleDownloadAdminAuditLogs(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	from, err := parseDateParam(r.URL.Query().Get("from"))
+	if err != nil {
+		http.Error(w, "Invalid 'from' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	to, err := parseDateParam(r.URL.Query().Get("to"))
+	if err != nil {
+		http.Error(w, "Invalid 'to' parameter. Use RFC3339 or YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	if to != nil && len(r.URL.Query().Get("to")) == 10 {
+		*to = to.Add(24*time.Hour - time.Second)
+	}
+
+	logs, err := s.Repo.GetAdminAuditLogs(r.Context(), from, to)
+	if err != nil {
+		s.Repo.LogAdminAction(r.Context(), username, "download_admin_audit_logs_fail", err.Error())
+		http.Error(w, "Failed to retrieve admin audit logs", http.StatusInternalServerError)
+		return
+	}
+
+	s.Repo.LogAdminAction(r.Context(), username, "download_admin_audit_logs_success", map[string]interface{}{
+		"from":  from,
+		"to":    to,
+		"count": len(logs),
+	})
+
+	w.Header().Set("Content-Disposition", "attachment; filename=admin_audit_logs.json")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(logs)
 }

@@ -108,8 +108,11 @@ go build -o scheduler-admin
 ./scheduler-admin
 ```
 
-### 2. Update/Create Jobs via curl
+### 2. Remote REST API
 
+For a detailed list of all endpoints, query parameters, and roles, see the [REST API Documentation](file:///home/zb_bamboo/DEV/__NEW__/Go/go_scheduler/docs/api/README.md).
+
+#### Update or Create Jobs:
 ```bash
 curl -u "admin1:your_secure_token" -X POST -H "Content-Type: application/json" \
      -d '[{
@@ -129,6 +132,14 @@ This request will:
 2. Upsert the job into the database (by name).
 3. Trigger a scheduler reload.
 4. Log the action in `admin_audit_logs`.
+
+#### Download Database Logs with Date Filtering:
+```bash
+# Download system logs between June 1st and June 2nd, 2026
+curl -u "admin1:your_secure_token" -X GET \
+     "http://localhost:8080/admin/logs/system?from=2026-06-01&to=2026-06-02" \
+     -o system_logs.json
+```
 
 ## IPC & Job Communication
 
