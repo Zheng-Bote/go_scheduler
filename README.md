@@ -34,14 +34,14 @@ A Linux command-line scheduler that executes external Go programs based on a Pos
 ### 2. Build
 
 ```bash
-go build -o ./cmd/scheduler/scheduler ./cmd/scheduler
-go build -o ./cmd/encrypt-config/encrypt-config ./cmd/encrypt-config
-go build -o ./cmd/job1/job1 ./cmd/job1
-go build -o ./cmd/job2/job2 ./cmd/job2
+go build -o ./bin/scheduler ./cmd/scheduler
+go build -o ./bin/encrypt-config ./cmd/encrypt-config
+go build -o ./bin/job1 ./cmd/job1
+go build -o ./bin/job2 ./cmd/job2
 # Linux
-go build -o ./cmd/scheduler-admin/scheduler-admin ./cmd/scheduler-admin
+go build -o ./bin/scheduler-admin ./cmd/scheduler-admin
 # Windows
-go build -v -ldflags="-H=windowsgui" -o .\cmd\scheduler-admin\scheduler-admin.exe .\cmd\scheduler-admin\main.go .\cmd\scheduler-admin\hello_windows.go
+go build -v -ldflags="-H=windowsgui" -o ./bin/scheduler-admin.exe ./cmd/scheduler-admin/main.go ./cmd/scheduler-admin/hello_windows.go
 ```
 
 ### 3. Database Setup
@@ -52,6 +52,7 @@ Apply the migrations in order:
 psql -h <host> -U <user> -d <db> -f migrations/001_init.sql
 psql -h <host> -U <user> -d <db> -f migrations/002_logging_and_audit.sql
 psql -h <host> -U <user> -d <db> -f migrations/003_admin_and_api.sql
+psql -h <host> -U <user> -d <db> -f migrations/004_add_name_unique.sql
 ```
 
 ### 4. Configuration
@@ -113,6 +114,7 @@ go build -o scheduler-admin
 For a detailed list of all endpoints, query parameters, and roles, see the [REST API Documentation](file:///home/zb_bamboo/DEV/__NEW__/Go/go_scheduler/docs/api/README.md).
 
 #### Update or Create Jobs:
+
 ```bash
 curl -u "admin1:your_secure_token" -X POST -H "Content-Type: application/json" \
      -d '[{
@@ -134,6 +136,7 @@ This request will:
 4. Log the action in `admin_audit_logs`.
 
 #### Download Database Logs with Date Filtering:
+
 ```bash
 # Download system logs between June 1st and June 2nd, 2026
 curl -u "admin1:your_secure_token" -X GET \

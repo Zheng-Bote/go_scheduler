@@ -31,15 +31,15 @@ import (
 
 // ScheduledProgram represents a job configuration from the DB
 type ScheduledProgram struct {
-	ID            int
-	Name          string
-	Command       string
-	Args          []string
-	CronExpr      string
-	Enabled       bool
-	RestartOnExit bool
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID            int           `json:"id"`
+	Name          string        `json:"name"`
+	Command       string        `json:"command"`
+	Args          []string      `json:"args"`
+	CronExpr      string        `json:"cron_expr"`
+	Enabled       bool          `json:"enabled"`
+	RestartOnExit bool          `json:"restart_on_exit"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
 }
 
 // ProgramRun tracks an execution instance of a job
