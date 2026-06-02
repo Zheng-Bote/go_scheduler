@@ -30,7 +30,11 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
+	fynetooltip "github.com/dweymouth/fyne-tooltip"
+	ttwidget "github.com/dweymouth/fyne-tooltip/widget"
 )
 
 // ScheduledProgram mirrors the server-side database structure for job
@@ -127,14 +131,21 @@ func main() {
 		}
 	}
 
-	// Buttons
-	loadBtn := widget.NewButton("Load Jobs", func() { ui.loadJobs() })
-	newBtn := widget.NewButton("New Job", func() { ui.showJobEditor(ScheduledProgram{Enabled: true}) })
+	// Toolbar with tooltips using fyne-tooltip library
+	toolbar := widget.NewToolbar(
+		&toolbarTooltipAction{theme.ListIcon(), "load Jobs", func() { ui.loadJobs() }},
+		&toolbarTooltipAction{theme.ContentAddIcon(), "new Job", func() { ui.showJobEditor(ScheduledProgram{Enabled: true}) }},
+		widget.NewToolbarSeparator(),
+		&toolbarTooltipAction{theme.FileIcon(), "download System-Logs", func() { ui.downloadSystemLogs() }},
+		&toolbarTooltipAction{theme.FileTextIcon(), "download Job-Audit-Logs", func() { ui.downloadJobAuditLogs() }},
+		&toolbarTooltipAction{theme.FileApplicationIcon(), "download Admin-Audit-Logs", func() { ui.downloadAdminAuditLogs() }},
+	)
 
-	topContainer := container.NewVBox(connForm, container.NewHBox(loadBtn, newBtn))
+	topContainer := container.NewVBox(connForm, toolbar)
 	content := container.NewBorder(topContainer, nil, nil, nil, ui.JobTable)
 
-	myWindow.SetContent(content)
+	// Wrap content in tooltip layer
+	myWindow.SetContent(fynetooltip.AddWindowToolTipLayer(content, myWindow.Canvas()))
 	myWindow.ShowAndRun()
 }
 
@@ -156,13 +167,11 @@ func getHeloUser() string {
 // available) before making the HTTP request.
 func (ui *AdminUI) loadJobs() {
 	go func() {
-		// Require Windows Hello verification (no-op on non-Windows)
 		verified, err := verifyWindowsHello(ui.Window)
-		if err != nil {
-			dialog.ShowError(fmt.Errorf("Windows Hello failed: %w", err), ui.Window)
-			return
-		}
-		if !verified {
+		if err != nil || !verified {
+			if err != nil {
+				dialog.ShowError(err, ui.Window)
+			}
 			return
 		}
 
@@ -198,8 +207,7 @@ func (ui *AdminUI) loadJobs() {
 }
 
 // showJobEditor opens a modal dialog for creating or editing a scheduled
-// program. Existing programs display a Delete button; new programs show a
-// clean form. On save, the dialog calls saveJob to persist the changes.
+// program.
 func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 	nameEntry := widget.NewEntry()
 	nameEntry.SetText(p.Name)
@@ -223,7 +231,6 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 		widget.NewFormItem("", restartCheck),
 	)
 
-	// Add Delete Button if editing existing job
 	var items []fyne.CanvasObject
 	items = append(items, form)
 	if p.Name != "" {
@@ -241,7 +248,6 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 		if !save {
 			return
 		}
-
 		p.Name = nameEntry.Text
 		p.Command = cmdEntry.Text
 		if argsEntry.Text != "" {
@@ -252,14 +258,10 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 		p.CronExpr = cronEntry.Text
 		p.Enabled = enabledCheck.Checked
 		p.RestartOnExit = restartCheck.Checked
-
 		ui.saveJob(p)
 	}, ui.Window)
 }
 
-// saveJob sends a POST request to the scheduler admin API with the supplied
-// program configuration. On success it reloads the job list and shows a
-// confirmation dialog.
 func (ui *AdminUI) saveJob(p ScheduledProgram) {
 	data, _ := json.Marshal([]ScheduledProgram{p})
 	client := &http.Client{}
@@ -270,16 +272,14 @@ func (ui *AdminUI) saveJob(p ScheduledProgram) {
 	}
 	req.SetBasicAuth(ui.User.Text, ui.Token.Text)
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := client.Do(req)
 	if err != nil {
 		dialog.ShowError(err, ui.Window)
 		return
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode == http.StatusOK {
-		dialog.ShowInformation("Success", "Job saved and scheduler reloaded", ui.Window)
+		dialog.ShowInformation("Success", "Job saved", ui.Window)
 		ui.loadJobs()
 	} else {
 		body, _ := io.ReadAll(resp.Body)
@@ -287,8 +287,6 @@ func (ui *AdminUI) saveJob(p ScheduledProgram) {
 	}
 }
 
-// deleteJob sends a DELETE request to the scheduler admin API for the given
-// job name. On success it refreshes the job list and shows a confirmation.
 func (ui *AdminUI) deleteJob(name string) {
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", ui.URL.Text+"/admin/delete-job?name="+name, nil)
@@ -297,14 +295,12 @@ func (ui *AdminUI) deleteJob(name string) {
 		return
 	}
 	req.SetBasicAuth(ui.User.Text, ui.Token.Text)
-
 	resp, err := client.Do(req)
 	if err != nil {
 		dialog.ShowError(err, ui.Window)
 		return
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode == http.StatusOK {
 		dialog.ShowInformation("Success", "Job deleted", ui.Window)
 		ui.loadJobs()
@@ -312,4 +308,76 @@ func (ui *AdminUI) deleteJob(name string) {
 		body, _ := io.ReadAll(resp.Body)
 		dialog.ShowInformation("Error", string(body), ui.Window)
 	}
+}
+
+func (ui *AdminUI) downloadSystemLogs() {
+	ui.downloadLogs("/admin/logs/system", "system_logs.json", "System logs saved")
+}
+
+func (ui *AdminUI) downloadJobAuditLogs() {
+	ui.downloadLogs("/admin/logs/job-audit", "job_audit_logs.json", "Job audit logs saved")
+}
+
+func (ui *AdminUI) downloadAdminAuditLogs() {
+	ui.downloadLogs("/admin/logs/admin-audit", "admin_audit_logs.json", "Admin audit logs saved")
+}
+
+func (ui *AdminUI) downloadLogs(endpoint, fileName, successMsg string) {
+	go func() {
+		verified, err := verifyWindowsHello(ui.Window)
+		if err != nil || !verified {
+			if err != nil {
+				dialog.ShowError(err, ui.Window)
+			}
+			return
+		}
+		client := &http.Client{}
+		req, err := http.NewRequest("GET", ui.URL.Text+endpoint, nil)
+		if err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		req.SetBasicAuth(ui.User.Text, ui.Token.Text)
+		resp, err := client.Do(req)
+		if err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			dialog.ShowInformation("Error", fmt.Sprintf("Failed to load logs: %s", string(body)), ui.Window)
+			return
+		}
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
+			dialog.ShowError(err, ui.Window)
+			return
+		}
+		saveDlg := dialog.NewFileSave(func(writer fyne.URIWriteCloser, err error) {
+			if err != nil || writer == nil {
+				return
+			}
+			defer writer.Close()
+			_, _ = writer.Write(data)
+			dialog.ShowInformation("Success", successMsg, ui.Window)
+		}, ui.Window)
+		saveDlg.SetFileName(fileName)
+		saveDlg.Show()
+	}()
+}
+
+// toolbarTooltipAction implements widget.ToolbarItem and creates a button
+// with a tooltip for use in a Fyne toolbar using the fyne-tooltip library.
+type toolbarTooltipAction struct {
+	icon    fyne.Resource
+	tooltip string
+	action  func()
+}
+
+func (t *toolbarTooltipAction) ToolbarObject() fyne.CanvasObject {
+	b := ttwidget.NewButtonWithIcon("", t.icon, t.action)
+	b.Importance = widget.LowImportance
+	b.SetToolTip(t.tooltip)
+	return b
 }
