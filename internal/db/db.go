@@ -1,3 +1,23 @@
+/**
+ * SPDX-FileComment: Database
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file db.go
+ * @brief PostgreSQL repository for job and audit log persistence
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package db implements the PostgreSQL data-access layer for the scheduler.
+// It manages job configurations, execution runs, system logs, audit trails,
+// and IPC status events through a connection pool.
 package db
 
 import (

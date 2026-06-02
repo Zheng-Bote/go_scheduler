@@ -1,3 +1,24 @@
+/**
+ * SPDX-FileComment: Config
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file config.go
+ * @brief Configuration data types and encrypted config loading
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package config provides data types and functions for loading and managing
+// the scheduler's encrypted configuration file. It handles decryption via the
+// crypto package and exposes PostgreSQL connection parameters and admin user
+// definitions.
 package config
 
 import (

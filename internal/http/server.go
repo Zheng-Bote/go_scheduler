@@ -1,3 +1,23 @@
+/**
+ * SPDX-FileComment: HTTP Server
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file server.go
+ * @brief HTTP API server with health, info, and admin endpoints
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package http provides an HTTP API server for the scheduler. It exposes
+// health-check, service-info, and authenticated admin endpoints for managing
+// scheduled jobs.
 package http
 
 import (
@@ -45,6 +65,9 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// authenticate validates the HTTP Basic Auth credentials against the
+// configured admin users. It returns the authenticated username and true
+// on success, or an empty string and false on failure.
 func (s *Server) authenticate(r *http.Request) (string, bool) {
 	user, token, ok := r.BasicAuth()
 	if !ok {
@@ -59,6 +82,9 @@ func (s *Server) authenticate(r *http.Request) (string, bool) {
 	return "", false
 }
 
+// handleUpdateJobs accepts a POST request with a JSON array of scheduled
+// programs, upserts them into the database, and triggers a scheduler reload.
+// Requires valid HTTP Basic Auth credentials.
 func (s *Server) handleUpdateJobs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -98,6 +124,8 @@ func (s *Server) handleUpdateJobs(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Jobs updated and scheduler reloaded"))
 }
 
+// handleGetJobs returns all scheduled programs as a JSON array. Requires
+// valid HTTP Basic Auth credentials.
 func (s *Server) handleGetJobs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -122,6 +150,8 @@ func (s *Server) handleGetJobs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(jobs)
 }
 
+// handleDeleteJob deletes a scheduled program by name (query param "name").
+// Requires valid HTTP Basic Auth credentials.
 func (s *Server) handleDeleteJob(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -154,6 +184,8 @@ func (s *Server) handleDeleteJob(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Job deleted"))
 }
 
+// handleInfo returns a JSON object with the scheduler name, description,
+// and version. This endpoint is unauthenticated.
 func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	info := map[string]string{
 		"name":        "Go Scheduler",
@@ -164,6 +196,9 @@ func (s *Server) handleInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
+// handleHealth performs a database ping and returns HTTP 200 if the
+// database is reachable, or HTTP 500 with the error message otherwise.
+// This endpoint is unauthenticated.
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

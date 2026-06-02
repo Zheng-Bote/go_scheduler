@@ -1,3 +1,23 @@
+/**
+ * SPDX-FileComment: IPC
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file ipc.go
+ * @brief Unix Domain Socket IPC for job status event communication
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package ipc implements inter-process communication over Unix Domain Sockets.
+// Jobs send JSON-formatted status and audit events to the scheduler, which
+// persists them to the database.
 package ipc
 
 import (
@@ -51,6 +71,8 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// handleConnection reads JSON-Lines from a connected Unix socket client and
+// dispatches each parsed StatusEvent to the registered OnEvent callback.
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)

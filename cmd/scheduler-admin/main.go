@@ -1,3 +1,20 @@
+/**
+ * SPDX-FileComment: Scheduler Admin
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file main.go
+ * @brief Cross-platform GUI admin tool for job management via Fyne
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
 package main
 
 import (
@@ -16,7 +33,9 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
-// ScheduledProgram matches the server-side DB structure
+// ScheduledProgram mirrors the server-side database structure for job
+// configuration. It is used to decode the JSON response from the scheduler
+// admin API and to construct payloads for create/update requests.
 type ScheduledProgram struct {
 	ID            int      `json:"id"`
 	Name          string   `json:"name"`
@@ -27,6 +46,9 @@ type ScheduledProgram struct {
 	RestartOnExit bool     `json:"restart_on_exit"`
 }
 
+// AdminUI holds the state and Fyne widgets for the scheduler administration
+// GUI. It manages the connection form, job table, and the list of programs
+// retrieved from the scheduler API.
 type AdminUI struct {
 	Window   fyne.Window
 	URL      *widget.Entry
@@ -116,6 +138,9 @@ func main() {
 	myWindow.ShowAndRun()
 }
 
+// getHeloUser returns the current OS username stripped of any domain prefix
+// (e.g. "DOMAIN\Username" becomes "Username"). The result is used as the
+// default admin user for HTTP basic authentication.
 func getHeloUser() string {
 	u, err := user.Current()
 	if err != nil {
@@ -126,6 +151,9 @@ func getHeloUser() string {
 	return parts[len(parts)-1]
 }
 
+// loadJobs fetches all scheduled programs from the scheduler admin API and
+// refreshes the job table. It first runs Windows Hello verification (if
+// available) before making the HTTP request.
 func (ui *AdminUI) loadJobs() {
 	go func() {
 		// Require Windows Hello verification (no-op on non-Windows)
@@ -169,6 +197,9 @@ func (ui *AdminUI) loadJobs() {
 	}()
 }
 
+// showJobEditor opens a modal dialog for creating or editing a scheduled
+// program. Existing programs display a Delete button; new programs show a
+// clean form. On save, the dialog calls saveJob to persist the changes.
 func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 	nameEntry := widget.NewEntry()
 	nameEntry.SetText(p.Name)
@@ -226,6 +257,9 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 	}, ui.Window)
 }
 
+// saveJob sends a POST request to the scheduler admin API with the supplied
+// program configuration. On success it reloads the job list and shows a
+// confirmation dialog.
 func (ui *AdminUI) saveJob(p ScheduledProgram) {
 	data, _ := json.Marshal([]ScheduledProgram{p})
 	client := &http.Client{}
@@ -253,6 +287,8 @@ func (ui *AdminUI) saveJob(p ScheduledProgram) {
 	}
 }
 
+// deleteJob sends a DELETE request to the scheduler admin API for the given
+// job name. On success it refreshes the job list and shows a confirmation.
 func (ui *AdminUI) deleteJob(name string) {
 	client := &http.Client{}
 	req, err := http.NewRequest("DELETE", ui.URL.Text+"/admin/delete-job?name="+name, nil)

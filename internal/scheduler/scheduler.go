@@ -1,3 +1,24 @@
+/**
+ * SPDX-FileComment: Scheduler
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file scheduler.go
+ * @brief Cron-based job scheduler managing program lifecycle
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package scheduler manages the lifecycle of cron-driven jobs. It loads
+// enabled programs from the database, schedules them via the robfig/cron
+// library, launches child processes with IPC environment variables, and
+// tracks execution runs and exit codes.
 package scheduler
 
 import (

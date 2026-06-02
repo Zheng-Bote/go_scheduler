@@ -1,5 +1,22 @@
 //go:build windows
 
+/**
+ * SPDX-FileComment: Scheduler Admin
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file hello_windows.go
+ * @brief Windows Hello biometric verification for admin tool
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
 package main
 
 import (
@@ -13,6 +30,9 @@ import (
 	"go-scheduler/windows/security/credentials/ui"
 )
 
+// waitAsync blocks until the given WinRT IAsyncOperation completes, polling
+// every 50 ms. It returns the operation's result pointer on success, or an
+// error describing cancellation or the failed HRESULT.
 func waitAsync(asyncOp *foundation.IAsyncOperation) (unsafe.Pointer, error) {
 	disp, err := asyncOp.QueryInterface(ole.NewGUID(foundation.GUIDIAsyncInfo))
 	if err != nil {
@@ -50,6 +70,10 @@ func waitAsync(asyncOp *foundation.IAsyncOperation) (unsafe.Pointer, error) {
 	}
 }
 
+// verifyWindowsHello performs Windows Hello biometric verification using the
+// WinRT UserConsentVerifier API. It checks availability first, then prompts
+// the user for fingerprint / face verification. Returns true only when the
+// user successfully verifies.
 func verifyWindowsHello(w fyne.Window) (bool, error) {
 	// Initialize OLE (COM) for the thread
 	_ = ole.CoInitializeEx(0, ole.COINIT_MULTITHREADED)

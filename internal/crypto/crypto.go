@@ -1,3 +1,24 @@
+/**
+ * SPDX-FileComment: Crypto
+ * SPDX-FileType: SOURCE
+ * SPDX-FileContributor: ZHENG Robert
+ * SPDX-FileCopyrightText: 2026 ZHENG Robert
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * @file crypto.go
+ * @brief AES-256-GCM encryption/decryption with Argon2id key derivation
+ * @version 1.0.0
+ * @date 2026-06-02
+ *
+ * @author ZHENG Robert (robert@hase-zheng.net)
+ * @copyright Copyright (c) 2026 ZHENG Robert
+ * @LICENSE Apache-2.0
+ */
+
+// Package crypto provides AES-256-GCM encryption and decryption primitives
+// protected by Argon2id key derivation. It is used by the config package to
+// securely store database credentials and admin tokens on disk, and by the
+// encrypt-config CLI tool.
 package crypto
 
 import (
