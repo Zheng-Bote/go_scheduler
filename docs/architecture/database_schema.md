@@ -18,7 +18,7 @@ erDiagram
         int id PK
         text name UK
         text command
-        text_array args
+        jsonb args
         text cron_expr
         boolean enabled
         boolean restart_on_exit
@@ -93,7 +93,7 @@ Stores the job definitions to be scheduled and run.
 *   `id` (SERIAL PRIMARY KEY): Unique identifier.
 *   `name` (TEXT NOT NULL UNIQUE): Name of the job configuration.
 *   `command` (TEXT NOT NULL): The path/command of the executable.
-*   `args` (TEXT[] DEFAULT '{}'): Arguments passed to the command on execution.
+*   `args` (JSONB DEFAULT '{}'::jsonb): Arguments passed to the command on execution.
 *   `cron_expr` (TEXT NOT NULL): Standard cron expression governing when to run.
 *   `enabled` (BOOLEAN DEFAULT true): Whether this job is active.
 *   `restart_on_exit` (BOOLEAN DEFAULT false): If `true`, the scheduler restarts the program automatically on a failure status (non-zero exit code).
