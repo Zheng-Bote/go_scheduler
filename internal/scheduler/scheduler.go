@@ -35,20 +35,22 @@ import (
 
 // Scheduler manages the lifecycle of jobs
 type Scheduler struct {
-	Repo       *db.Repository
-	Cron       *cron.Cron
-	SocketPath string
-	mu         sync.Mutex
-	running    map[int]bool // Tracks active runs
+	Repo         *db.Repository
+	Cron         *cron.Cron
+	SocketPath   string
+	DBConfigJSON string
+	mu           sync.Mutex
+	running      map[int]bool // Tracks active runs
 }
 
 // New creates a new scheduler instance
-func New(repo *db.Repository, socketPath string) *Scheduler {
+func New(repo *db.Repository, socketPath string, dbConfigJSON string) *Scheduler {
 	return &Scheduler{
-		Repo:       repo,
-		Cron:       cron.New(),
-		SocketPath: socketPath,
-		running:    make(map[int]bool),
+		Repo:         repo,
+		Cron:         cron.New(),
+		SocketPath:   socketPath,
+		DBConfigJSON: dbConfigJSON,
+		running:      make(map[int]bool),
 	}
 }
 
@@ -101,7 +103,11 @@ func (s *Scheduler) RunProgram(p db.ScheduledProgram) {
 	}
 
 	// 2. Prepare command
-	cmd := exec.Command(p.Command, p.Args...)
+	argsJSON := "{}"
+	if len(p.Args) > 0 {
+		argsJSON = string(p.Args)
+	}
+	cmd := exec.Command(p.Command, s.DBConfigJSON, argsJSON)
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("RUN_ID=%d", runID),
 		fmt.Sprintf("SCHEDULER_SOCKET_PATH=%s", s.SocketPath),

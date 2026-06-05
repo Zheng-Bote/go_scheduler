@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -101,7 +102,11 @@ func main() {
 	repo.LogSystem(ctx, "INFO", "IPC", fmt.Sprintf("IPC Server listening on %s", schedCfg.SocketPath))
 	log.Printf("IPC Server listening on %s", schedCfg.SocketPath)
 
-	sched := scheduler.New(repo, schedCfg.SocketPath)
+	dbConfigBytes, err := json.Marshal(dbCfg)
+	if err != nil {
+		log.Fatalf("Failed to marshal DB config: %v", err)
+	}
+	sched := scheduler.New(repo, schedCfg.SocketPath, string(dbConfigBytes))
 
 	// 6. Start HTTP Server
 	httpServer := &http.Server{

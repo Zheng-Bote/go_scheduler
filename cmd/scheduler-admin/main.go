@@ -41,13 +41,13 @@ import (
 // configuration. It is used to decode the JSON response from the scheduler
 // admin API and to construct payloads for create/update requests.
 type ScheduledProgram struct {
-	ID            int      `json:"id"`
-	Name          string   `json:"name"`
-	Command       string   `json:"command"`
-	Args          []string `json:"args"`
-	CronExpr      string   `json:"cron_expr"`
-	Enabled       bool     `json:"enabled"`
-	RestartOnExit bool     `json:"restart_on_exit"`
+	ID            int             `json:"id"`
+	Name          string          `json:"name"`
+	Command       string          `json:"command"`
+	Args          json.RawMessage `json:"args"`
+	CronExpr      string          `json:"cron_expr"`
+	Enabled       bool            `json:"enabled"`
+	RestartOnExit bool            `json:"restart_on_exit"`
 }
 
 // AdminUI holds the state and Fyne widgets for the scheduler administration
@@ -213,8 +213,12 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 	nameEntry.SetText(p.Name)
 	cmdEntry := widget.NewEntry()
 	cmdEntry.SetText(p.Command)
-	argsEntry := widget.NewEntry()
-	argsEntry.SetText(strings.Join(p.Args, ","))
+	argsEntry := widget.NewMultiLineEntry()
+	if len(p.Args) > 0 {
+		argsEntry.SetText(string(p.Args))
+	} else {
+		argsEntry.SetText("{}")
+	}
 	cronEntry := widget.NewEntry()
 	cronEntry.SetText(p.CronExpr)
 	enabledCheck := widget.NewCheck("Enabled", func(bool) {})
@@ -225,7 +229,7 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 	form := widget.NewForm(
 		widget.NewFormItem("Job Name", nameEntry),
 		widget.NewFormItem("Command", cmdEntry),
-		widget.NewFormItem("Args (comma sep)", argsEntry),
+		widget.NewFormItem("Args (JSON)", argsEntry),
 		widget.NewFormItem("Cron Expr", cronEntry),
 		widget.NewFormItem("", enabledCheck),
 		widget.NewFormItem("", restartCheck),
@@ -251,9 +255,9 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 		p.Name = nameEntry.Text
 		p.Command = cmdEntry.Text
 		if argsEntry.Text != "" {
-			p.Args = strings.Split(argsEntry.Text, ",")
+			p.Args = json.RawMessage(argsEntry.Text)
 		} else {
-			p.Args = []string{}
+			p.Args = json.RawMessage("{}")
 		}
 		p.CronExpr = cronEntry.Text
 		p.Enabled = enabledCheck.Checked
