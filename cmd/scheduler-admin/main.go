@@ -255,7 +255,12 @@ func (ui *AdminUI) showJobEditor(p ScheduledProgram) {
 		p.Name = nameEntry.Text
 		p.Command = cmdEntry.Text
 		if argsEntry.Text != "" {
-			p.Args = json.RawMessage(argsEntry.Text)
+			var testJSON json.RawMessage
+			if err := json.Unmarshal([]byte(argsEntry.Text), &testJSON); err != nil {
+				dialog.ShowError(fmt.Errorf("invalid JSON in Args: %w", err), ui.Window)
+				return
+			}
+			p.Args = testJSON
 		} else {
 			p.Args = json.RawMessage("{}")
 		}
