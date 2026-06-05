@@ -53,6 +53,7 @@ psql -h <host> -U <user> -d <db> -f migrations/001_init.sql
 psql -h <host> -U <user> -d <db> -f migrations/002_logging_and_audit.sql
 psql -h <host> -U <user> -d <db> -f migrations/003_admin_and_api.sql
 psql -h <host> -U <user> -d <db> -f migrations/004_add_name_unique.sql
+psql -h <host> -U <user> -d <db> -f migrations/005_change_args_to_jsonb.sql
 ```
 
 ### 4. Configuration
@@ -119,8 +120,11 @@ For a detailed list of all endpoints, query parameters, and roles, see the [REST
 curl -u "admin1:your_secure_token" -X POST -H "Content-Type: application/json" \
      -d '[{
             "name": "RemoteJob",
-            "command": "./job1",
-            "args": [],
+            "command": "./bin/mitm-collector-pg-employee",
+            "args": {
+              "source_name": "PG_EMPLOYEE",
+              "table": "employees"
+            },
             "cron_expr": "*/2 * * * *",
             "enabled": true,
             "restart_on_exit": false
