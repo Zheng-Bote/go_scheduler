@@ -69,7 +69,7 @@ func Encrypt(plaintext []byte, password []byte) ([]byte, error) {
 
 	// Result format: salt (16) + nonce (12) + ciphertext
 	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	
+
 	result := make([]byte, len(salt)+len(nonce)+len(ciphertext))
 	copy(result[0:16], salt)
 	copy(result[16:16+len(nonce)], nonce)

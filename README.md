@@ -148,6 +148,21 @@ curl -u "admin1:your_secure_token" -X GET \
      -o system_logs.json
 ```
 
+## Injected Environment Variables
+
+When the scheduler starts a job, it securely passes configuration and context via environment variables:
+
+- `RUN_ID`: The unique ID of the current job execution.
+- `SCHEDULER_SOCKET_PATH`: The path to the Unix domain socket for IPC communication.
+- `MITM_DB_CONFIG_JSON`: The complete, raw database configuration JSON string.
+- `MITM_DB_HOST`: Target MitM database hostname.
+- `MITM_DB_PORT`: Target MitM database port.
+- `MITM_DB_USER`: Target MitM database username.
+- `MITM_DB_PASSWORD`: Target MitM database password.
+- `MITM_DB_NAME`: Target MitM database name.
+
+These variables allow data collectors to connect to the central MitM database or communicate with the scheduler without relying on CLI arguments or local configuration files.
+
 ## IPC & Job Communication
 
 Jobs can send JSON messages to the Unix Domain Socket specified in `SCHEDULER_SOCKET_PATH`.

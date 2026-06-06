@@ -34,16 +34,16 @@ func TestParseDateParam(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			input:    "2026-06-02T10:16:42Z",
-			wantErr:  false,
+			input:   "2026-06-02T10:16:42Z",
+			wantErr: false,
 		},
 		{
-			input:    "2026-06-02",
-			wantErr:  false,
+			input:   "2026-06-02",
+			wantErr: false,
 		},
 		{
-			input:    "invalid-date",
-			wantErr:  true,
+			input:   "invalid-date",
+			wantErr: true,
 		},
 	}
 

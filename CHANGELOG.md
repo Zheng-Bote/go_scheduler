@@ -5,6 +5,11 @@ All notable changes to the MitM Scheduler will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.6.0] - 2026-06-06
+
+### Added
+- Scheduler now automatically injects `MITM_DB_*` environment variables (e.g., `MITM_DB_HOST`, `MITM_DB_PORT`, `MITM_DB_USER`, `MITM_DB_PASSWORD`, `MITM_DB_NAME`, `MITM_DB_CONFIG_JSON`) into child processes, providing target database connection details without requiring CLI arguments.
+
 ## [v0.5.0] - 2026-06-05
 
 ### Added

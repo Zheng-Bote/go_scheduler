@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS scheduled_programs (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
     command TEXT NOT NULL,
-    args TEXT[] DEFAULT '{}',
+    args JSONB DEFAULT '{}'::jsonb,
     cron_expr TEXT NOT NULL,
     enabled BOOLEAN DEFAULT true,
     restart_on_exit BOOLEAN DEFAULT false,

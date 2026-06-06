@@ -88,7 +88,7 @@ func main() {
 
 			log.Printf("IPC Event: RunID=%d, Status=%s, Message=%s, Progress=%d%%",
 				event.RunID, event.Status, event.Message, event.Progress)
-			
+
 			err := repo.CreateStatusEvent(context.Background(), event.RunID, event.Status, event.Message, event.Progress)
 			if err != nil {
 				log.Printf("Failed to save IPC event to DB: %v", err)

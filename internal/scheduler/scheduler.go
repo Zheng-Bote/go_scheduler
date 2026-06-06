@@ -23,14 +23,15 @@ package scheduler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"sync"
 
-	"go-scheduler/internal/db"
 	"github.com/robfig/cron/v3"
+	"go-scheduler/internal/db"
 )
 
 // Scheduler manages the lifecycle of jobs
@@ -107,11 +108,30 @@ func (s *Scheduler) RunProgram(p db.ScheduledProgram) {
 	if len(p.Args) > 0 {
 		argsJSON = string(p.Args)
 	}
-	cmd := exec.Command(p.Command, s.DBConfigJSON, argsJSON)
+	cmd := exec.Command(p.Command, argsJSON)
+
 	cmd.Env = append(os.Environ(),
 		fmt.Sprintf("RUN_ID=%d", runID),
 		fmt.Sprintf("SCHEDULER_SOCKET_PATH=%s", s.SocketPath),
+		fmt.Sprintf("MITM_DB_CONFIG_JSON=%s", s.DBConfigJSON),
 	)
+
+	var dbCfg struct {
+		Host     string `json:"host"`
+		Port     int    `json:"port"`
+		User     string `json:"user"`
+		Password string `json:"password"`
+		Database string `json:"database"`
+	}
+	if err := json.Unmarshal([]byte(s.DBConfigJSON), &dbCfg); err == nil {
+		cmd.Env = append(cmd.Env,
+			fmt.Sprintf("MITM_DB_HOST=%s", dbCfg.Host),
+			fmt.Sprintf("MITM_DB_PORT=%d", dbCfg.Port),
+			fmt.Sprintf("MITM_DB_USER=%s", dbCfg.User),
+			fmt.Sprintf("MITM_DB_PASSWORD=%s", dbCfg.Password),
+			fmt.Sprintf("MITM_DB_NAME=%s", dbCfg.Database),
+		)
+	}
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

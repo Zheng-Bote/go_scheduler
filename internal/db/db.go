@@ -127,7 +127,7 @@ func (r *Repository) UpsertScheduledProgram(ctx context.Context, p ScheduledProg
 			enabled = EXCLUDED.enabled,
 			restart_on_exit = EXCLUDED.restart_on_exit,
 			updated_at = CURRENT_TIMESTAMP`
-	
+
 	// Note: You need a UNIQUE constraint on 'name' for ON CONFLICT to work.
 	// We'll assume the migration adds it or we use a manual check.
 	_, err := r.Pool.Exec(ctx, query, p.Name, p.Command, p.Args, p.CronExpr, p.Enabled, p.RestartOnExit)
