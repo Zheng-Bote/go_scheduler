@@ -17,7 +17,7 @@ flowchart TB
 
     subgraph system_boundary ["Go Scheduler System Boundary"]
         scheduler_sys["Go Scheduler\n(Core scheduler & API)"]
-        gui_app["Scheduler Admin GUI\n(Fyne Desktop App)"]
+        gui_app["Scheduler Admin GUI\n(Desktop Application)"]
     end
 
     jobs["External Job Binaries\n(job1, job2, etc.)"]
