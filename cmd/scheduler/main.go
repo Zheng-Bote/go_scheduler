@@ -7,8 +7,8 @@
  *
  * @file main.go
  * @brief Main entry point for the scheduler service
- * @version 1.0.0
- * @date 2026-06-02
+ * @version 1.1.0
+ * @date 2026-06-08
  *
  * @author ZHENG Robert (robert@hase-zheng.net)
  * @copyright Copyright (c) 2026 ZHENG Robert
@@ -31,6 +31,7 @@ import (
 	"go-scheduler/internal/http"
 	"go-scheduler/internal/ipc"
 	"go-scheduler/internal/scheduler"
+
 	"golang.org/x/term"
 )
 

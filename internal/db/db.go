@@ -22,11 +22,15 @@ package db
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go-scheduler/internal/crypto"
 )
 
 // ScheduledProgram represents a job configuration from the DB
@@ -320,4 +324,123 @@ func (r *Repository) GetAdminAuditLogs(ctx context.Context, from, to *time.Time)
 		logs = append(logs, l)
 	}
 	return logs, nil
+}
+
+// SourceCredential represents a source connection
+type SourceCredential struct {
+	ID            string    `json:"id"`
+	SourceName    string    `json:"source_name"`
+	ConnectorType string    `json:"connector_type"`
+	ConfigPayload string    `json:"config_payload"`
+	IsActive      bool      `json:"is_active"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+}
+
+// GetSourceCredentials fetches all source credentials and decrypts their config_payload
+func (r *Repository) GetSourceCredentials(ctx context.Context) ([]SourceCredential, error) {
+	query := `
+		SELECT 
+			sc.id::text, sc.source_name, sc.connector_type, sc.is_active, sc.created_at, sc.updated_at,
+			sc.config_payload, sc.nonce, sk.wrapped_key
+		FROM source_credentials sc
+		JOIN storage_keys sk ON sc.dek_id = sk.id
+		ORDER BY sc.source_name ASC
+	`
+	rows, err := r.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	masterKeyStr := os.Getenv("MASTER_KEY")
+	var kek []byte
+	if decoded, err := base64.StdEncoding.DecodeString(masterKeyStr); err == nil {
+		kek = decoded
+	} else {
+		kek = []byte(masterKeyStr)
+	}
+
+	var creds []SourceCredential
+	creds = make([]SourceCredential, 0)
+	for rows.Next() {
+		var c SourceCredential
+		var payload, nonce, wrappedKey []byte
+		var isActive *bool
+		var createdAt, updatedAt *time.Time
+
+		if err := rows.Scan(&c.ID, &c.SourceName, &c.ConnectorType, &isActive, &createdAt, &updatedAt, &payload, &nonce, &wrappedKey); err != nil {
+			fmt.Printf("[DB ERROR] GetSourceCredentials Scan failed: %v\n", err)
+			return nil, err
+		}
+		
+		if isActive != nil {
+			c.IsActive = *isActive
+		}
+		if createdAt != nil {
+			c.CreatedAt = *createdAt
+		}
+		if updatedAt != nil {
+			c.UpdatedAt = *updatedAt
+		}
+		
+		decrypted, err := crypto.EnvelopeDecrypt(kek, wrappedKey, nonce, payload)
+		if err == nil {
+			c.ConfigPayload = string(decrypted)
+		} else {
+			c.ConfigPayload = fmt.Sprintf(`{"error": "decryption failed: %v"}`, err)
+		}
+
+		creds = append(creds, c)
+	}
+	return creds, nil
+}
+
+// UpsertSourceCredential inserts or updates a source credential
+func (r *Repository) UpsertSourceCredential(ctx context.Context, c SourceCredential) error {
+	masterKeyStr := os.Getenv("MASTER_KEY")
+	var kek []byte
+	if decoded, err := base64.StdEncoding.DecodeString(masterKeyStr); err == nil {
+		kek = decoded
+	} else {
+		kek = []byte(masterKeyStr)
+	}
+
+	// Get active DEK for encryption
+	var dekID string
+	var wrappedKey []byte
+	err := r.Pool.QueryRow(ctx, "SELECT id::text, wrapped_key FROM storage_keys WHERE is_active = true LIMIT 1").Scan(&dekID, &wrappedKey)
+	if err != nil {
+		if strings.Contains(err.Error(), "no rows") {
+			wrappedKey, err = crypto.GenerateWrappedDEK(kek)
+			if err != nil {
+				return fmt.Errorf("failed to generate new DEK: %v", err)
+			}
+			err = r.Pool.QueryRow(ctx, "INSERT INTO storage_keys (wrapped_key, is_active) VALUES ($1, true) RETURNING id::text", wrappedKey).Scan(&dekID)
+			if err != nil {
+				return fmt.Errorf("failed to save new storage key: %v", err)
+			}
+		} else {
+			return fmt.Errorf("failed to fetch active storage key: %v", err)
+		}
+	}
+
+	encryptedPayload, nonce, err := crypto.EnvelopeEncrypt(kek, wrappedKey, []byte(c.ConfigPayload))
+	if err != nil {
+		return fmt.Errorf("encryption failed: %v", err)
+	}
+
+	query := `
+		INSERT INTO source_credentials (source_name, connector_type, config_payload, nonce, dek_id, is_active, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+		ON CONFLICT (source_name) DO UPDATE SET
+			connector_type = EXCLUDED.connector_type,
+			config_payload = EXCLUDED.config_payload,
+			nonce = EXCLUDED.nonce,
+			dek_id = EXCLUDED.dek_id,
+			is_active = EXCLUDED.is_active,
+			updated_at = CURRENT_TIMESTAMP
+	`
+	_, err = r.Pool.Exec(ctx, query, c.SourceName, c.ConnectorType, encryptedPayload, nonce, dekID, c.IsActive)
+	return err
 }
