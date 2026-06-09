@@ -55,6 +55,16 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin/logs/system", s.handleDownloadSystemLogs)
 	mux.HandleFunc("/admin/logs/job-audit", s.handleDownloadJobAuditLogs)
 	mux.HandleFunc("/admin/logs/admin-audit", s.handleDownloadAdminAuditLogs)
+	mux.HandleFunc("/admin/credentials", s.handleCredentials)
+
+	// Transformation layer routes
+	mux.HandleFunc("/admin/transformation/sources", s.handleMappingSources)
+	mux.HandleFunc("/admin/transformation/targets", s.handleMappingTargets)
+	mux.HandleFunc("/admin/transformation/rules", s.handleMappingRules)
+	mux.HandleFunc("/admin/transformation/transformations", s.handleMappingTransformations)
+	mux.HandleFunc("/admin/transformation/validations", s.handleMappingValidations)
+	mux.HandleFunc("/admin/transformation/auto-map", s.handleAutoMap)
+	mux.HandleFunc("/admin/action", s.handleAdminAction)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", s.Port),
@@ -83,6 +93,34 @@ func (s *Server) authenticate(r *http.Request) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// handleAdminAction allows frontend to explicitly log an action
+func (s *Server) handleAdminAction(w http.ResponseWriter, r *http.Request) {
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var payload struct {
+		Action  string      `json:"action"`
+		Details interface{} `json:"details"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	s.Repo.LogAdminAction(r.Context(), username, payload.Action, payload.Details)
+	w.WriteHeader(http.StatusOK)
 }
 
 // handleUpdateJobs accepts a POST request with a JSON array of scheduled
@@ -378,4 +416,53 @@ func (s *Server) handleDownloadAdminAuditLogs(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Disposition", "attachment; filename=admin_audit_logs.json")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(logs)
+}
+
+// handleCredentials returns or updates source credentials. Requires valid HTTP Basic Auth.
+func (s *Server) handleCredentials(w http.ResponseWriter, r *http.Request) {
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		creds, err := s.Repo.GetSourceCredentials(r.Context())
+		if err != nil {
+			s.Repo.LogAdminAction(r.Context(), username, "get_credentials_fail", err.Error())
+			http.Error(w, "Failed to fetch source credentials", http.StatusInternalServerError)
+			return
+		}
+
+		s.Repo.LogAdminAction(r.Context(), username, "get_credentials_success", map[string]interface{}{
+			"count": len(creds),
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(creds)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var cred db.SourceCredential
+		if err := json.NewDecoder(r.Body).Decode(&cred); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.Repo.UpsertSourceCredential(r.Context(), cred); err != nil {
+			fmt.Printf("[HTTP ERROR] Failed to upsert credential '%s': %v\n", cred.SourceName, err)
+			s.Repo.LogAdminAction(r.Context(), username, "upsert_credential_fail", map[string]interface{}{"source": cred.SourceName, "error": err.Error()})
+			http.Error(w, fmt.Sprintf("Failed to update credential %s: %v", cred.SourceName, err), http.StatusInternalServerError)
+			return
+		}
+
+		s.Repo.LogAdminAction(r.Context(), username, "upsert_credential_success", map[string]interface{}{"source": cred.SourceName})
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Credential updated"))
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
