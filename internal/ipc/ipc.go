@@ -30,11 +30,12 @@ import (
 
 // StatusEvent represents the JSON payload sent by jobs
 type StatusEvent struct {
-	RunID    int    `json:"run_id"`
-	Type     string `json:"type"` // "status" (default) or "audit"
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	Progress int    `json:"progress"`
+	RunID     int    `json:"run_id"`
+	Type      string `json:"type"` // "status" (default) or "audit"
+	Component string `json:"component"`
+	Status    string `json:"status"`
+	Message   string `json:"message"`
+	Progress  int    `json:"progress"`
 }
 
 // Server listens for StatusEvents on a Unix Domain Socket

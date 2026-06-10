@@ -34,7 +34,7 @@ A Linux command-line scheduler that executes external Go programs based on a Pos
 ### 2. Build
 
 ```bash
-go build -o ./bin/scheduler ./cmd/scheduler
+go build -o ./bin/mitm-server ./cmd/scheduler
 go build -o ./bin/encrypt-config ./cmd/encrypt-config
 go build -o ./bin/job1 ./cmd/job1
 go build -o ./bin/job2 ./cmd/job2

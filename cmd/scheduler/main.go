@@ -82,8 +82,8 @@ func main() {
 		SocketPath: schedCfg.SocketPath,
 		OnEvent: func(event ipc.StatusEvent) {
 			if event.Type == "audit" {
-				log.Printf("AUDIT: RunID=%d, Message=%s", event.RunID, event.Message)
-				_ = repo.CreateAuditLog(context.Background(), event.RunID, event.Message)
+				log.Printf("AUDIT: RunID=%d, Component=%s, Message=%s", event.RunID, event.Component, event.Message)
+				_ = repo.CreateAuditLog(context.Background(), event.RunID, event.Component, event.Message)
 				return
 			}
 

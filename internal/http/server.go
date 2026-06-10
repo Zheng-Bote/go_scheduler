@@ -56,6 +56,8 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin/logs/job-audit", s.handleDownloadJobAuditLogs)
 	mux.HandleFunc("/admin/logs/admin-audit", s.handleDownloadAdminAuditLogs)
 	mux.HandleFunc("/admin/credentials", s.handleCredentials)
+	mux.HandleFunc("/admin/delivery_targets", s.handleDeliveryTargets)
+	mux.HandleFunc("/admin/dlq", s.handleDLQ)
 
 	// Transformation layer routes
 	mux.HandleFunc("/admin/transformation/sources", s.handleMappingSources)
@@ -465,4 +467,90 @@ func (s *Server) handleCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+// handleDeliveryTargets returns or updates delivery targets. Requires valid HTTP Basic Auth.
+func (s *Server) handleDeliveryTargets(w http.ResponseWriter, r *http.Request) {
+	username, ok := s.authenticate(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Admin API"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method == http.MethodGet {
+		targets, err := s.Repo.GetDeliveryTargets(r.Context())
+		if err != nil {
+			s.Repo.LogAdminAction(r.Context(), username, "get_delivery_targets_fail", err.Error())
+			http.Error(w, "Failed to fetch delivery targets", http.StatusInternalServerError)
+			return
+		}
+
+		s.Repo.LogAdminAction(r.Context(), username, "get_delivery_targets_success", map[string]interface{}{
+			"count": len(targets),
+		})
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(targets)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var target db.DeliveryTarget
+		if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.Repo.UpsertDeliveryTarget(r.Context(), target); err != nil {
+			fmt.Printf("[HTTP ERROR] Failed to upsert delivery target '%s': %v\n", target.Topic, err)
+			s.Repo.LogAdminAction(r.Context(), username, "upsert_delivery_target_fail", map[string]interface{}{"topic": target.Topic, "error": err.Error()})
+			http.Error(w, fmt.Sprintf("Failed to update delivery target %s: %v", target.Topic, err), http.StatusInternalServerError)
+			return
+		}
+
+		s.Repo.LogAdminAction(r.Context(), username, "upsert_delivery_target_success", map[string]interface{}{"topic": target.Topic})
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Delivery target updated"))
+		return
+	}
+
+	if r.Method == http.MethodDelete {
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, "Missing id", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.Repo.DeleteDeliveryTarget(r.Context(), id); err != nil {
+			http.Error(w, "Failed to delete target", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Target deleted"))
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+// handleDLQ handles GET requests for dead letter queue entries
+func (s *Server) handleDLQ(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	entries, err := s.Repo.GetDLQEntries(r.Context(), 100)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Failed to fetch DLQ entries: %v", err)))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(entries); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf("Failed to encode DLQ entries: %v", err)))
+	}
 }

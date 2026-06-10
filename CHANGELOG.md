@@ -5,6 +5,12 @@ All notable changes to the MitM Scheduler will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.8.0] - 2026-06-10
+
+### Added
+- **Dead Letter Queue API**: Added `GET /admin/dlq` REST endpoint for fetching Dead Letter Queue (DLQ) entries.
+- **Audit Logs Component**: Added `component` column to `job_audit_logs` and updated IPC `StatusEvent` to parse the `component` field for better log attribution.
+
 ## [v0.7.0] - 2026-06-09
 
 ### Added
