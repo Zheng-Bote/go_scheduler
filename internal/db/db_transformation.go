@@ -10,12 +10,13 @@ type MappingSource struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Type      string    `json:"type"`
+	Topic     string    `json:"topic"`
 	Version   int       `json:"version"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
 func (r *Repository) GetMappingSources(ctx context.Context) ([]MappingSource, error) {
-	rows, err := r.Pool.Query(ctx, "SELECT id::text, name, type, version, created_at FROM mapping_source ORDER BY name ASC")
+	rows, err := r.Pool.Query(ctx, "SELECT id::text, name, type, topic, version, created_at FROM mapping_source ORDER BY name ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +25,7 @@ func (r *Repository) GetMappingSources(ctx context.Context) ([]MappingSource, er
 	var res []MappingSource
 	for rows.Next() {
 		var m MappingSource
-		if err := rows.Scan(&m.ID, &m.Name, &m.Type, &m.Version, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Name, &m.Type, &m.Topic, &m.Version, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		res = append(res, m)
@@ -34,14 +35,15 @@ func (r *Repository) GetMappingSources(ctx context.Context) ([]MappingSource, er
 
 func (r *Repository) UpsertMappingSource(ctx context.Context, m MappingSource) error {
 	query := `
-		INSERT INTO mapping_source (id, name, type, version, created_at)
-		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+		INSERT INTO mapping_source (id, name, type, topic, version, created_at)
+		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			type = EXCLUDED.type,
+			topic = EXCLUDED.topic,
 			version = EXCLUDED.version
 	`
-	_, err := r.Pool.Exec(ctx, query, m.ID, m.Name, m.Type, m.Version)
+	_, err := r.Pool.Exec(ctx, query, m.ID, m.Name, m.Type, m.Topic, m.Version)
 	return err
 }
 
