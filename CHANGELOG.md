@@ -5,6 +5,15 @@ All notable changes to the MitM Scheduler will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.9.0] - 2026-06-14
+
+### Added
+- **RBAC API**: Added full REST API for Role-Based Access Control (`/admin/rbac/*`).
+- **Database User Management**: Added support for creating, deleting, and fetching users from the `admin_users` table with Argon2 password hashing.
+- **Envelope Encryption for Roles**: Role assignments are securely AES-GCM encrypted and stored in the database (`user_roles_encrypted`).
+- **Audit Logging for RBAC**: All RBAC modifications (create user, delete user, assign roles) are natively logged to the `admin_audit_logs` table.
+- **CLI Utility**: New `create-admin` Go command-line tool added to initialize the first DB admin user.
+
 ## [v0.8.0] - 2026-06-10
 
 ### Added

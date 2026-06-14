@@ -114,6 +114,7 @@ func main() {
 		Repo:      repo,
 		Port:      schedCfg.HTTPPort,
 		Admins:    dbCfg.Admins,
+		KEK:       []byte(password),
 		Scheduler: sched,
 	}
 	if err := httpServer.Start(); err != nil {

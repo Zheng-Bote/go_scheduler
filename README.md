@@ -54,6 +54,7 @@ psql -h <host> -U <user> -d <db> -f migrations/002_logging_and_audit.sql
 psql -h <host> -U <user> -d <db> -f migrations/003_admin_and_api.sql
 psql -h <host> -U <user> -d <db> -f migrations/004_add_name_unique.sql
 psql -h <host> -U <user> -d <db> -f migrations/005_change_args_to_jsonb.sql
+psql -h <host> -U <user> -d <db> -f migrations/006_rbac.sql
 ```
 
 ### 4. Configuration

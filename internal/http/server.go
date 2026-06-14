@@ -21,13 +21,17 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"go-scheduler/internal/config"
+	"go-scheduler/internal/crypto"
 	"go-scheduler/internal/db"
 )
 
@@ -41,6 +45,7 @@ type Server struct {
 	Repo      *db.Repository
 	Port      int
 	Admins    []config.AdminUser
+	KEK       []byte
 	Scheduler SchedulerInterface
 }
 
@@ -58,6 +63,15 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin/credentials", s.handleCredentials)
 	mux.HandleFunc("/admin/delivery_targets", s.handleDeliveryTargets)
 	mux.HandleFunc("/admin/dlq", s.handleDLQ)
+
+	// RBAC routes
+	mux.HandleFunc("/admin/rbac/roles", s.handleGetRoles)
+	mux.HandleFunc("/admin/rbac/users", s.handleGetUsers)
+	mux.HandleFunc("/admin/rbac/user/create", s.handleCreateUser)
+	mux.HandleFunc("/admin/rbac/user/delete", s.handleDeleteUser)
+	mux.HandleFunc("/admin/rbac/assign", s.handleAssignRoles)
+	mux.HandleFunc("/admin/rbac/user_roles", s.handleGetUserRoles)
+	mux.HandleFunc("/admin/rbac/os_user_roles", s.handleGetOsUserRoles)
 
 	// Transformation layer routes
 	mux.HandleFunc("/admin/transformation/sources", s.handleMappingSources)
@@ -94,6 +108,24 @@ func (s *Server) authenticate(r *http.Request) (string, bool) {
 			return user, true
 		}
 	}
+	// Fallback to DB check
+	var hashStr string
+	err := s.Repo.Pool.QueryRow(r.Context(), "SELECT password_hash FROM admin_users WHERE username = $1 AND is_active = true", user).Scan(&hashStr)
+	if err == nil {
+		// hashStr is base64(salt):base64(hash)
+		parts := strings.Split(hashStr, ":")
+		if len(parts) == 2 {
+			salt, _ := base64.StdEncoding.DecodeString(parts[0])
+			expectedHash, _ := base64.StdEncoding.DecodeString(parts[1])
+
+			// derive hash from provided token/password
+			actualHash := crypto.DeriveKey([]byte(token), salt)
+			if bytes.Equal(actualHash, expectedHash) {
+				return user, true
+			}
+		}
+	}
+
 	return "", false
 }
 
