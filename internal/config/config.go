@@ -41,9 +41,10 @@ type DBConfig struct {
 	Port     int         `json:"port"`
 	User     string      `json:"user"`
 	Password string      `json:"password"`
-	Database string      `json:"database"`
-	LogLevel string      `json:"log_level"`
-	Admins   []AdminUser `json:"admins"`
+	Database  string      `json:"database"`
+	LogLevel  string      `json:"log_level"`
+	UploadDir string      `json:"upload_dir"`
+	Admins    []AdminUser `json:"admins"`
 }
 
 // LoadEncryptedConfig reads an encrypted JSON file and decrypts it into DBConfig

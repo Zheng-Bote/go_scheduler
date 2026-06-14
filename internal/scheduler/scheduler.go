@@ -180,6 +180,18 @@ func (s *Scheduler) RunProgram(p db.ScheduledProgram) {
 	}()
 }
 
+// RunImmediateJob executes a job immediately without saving it to the enabled programs list
+func (s *Scheduler) RunImmediateJob(ctx context.Context, command string, args []byte) {
+	p := db.ScheduledProgram{
+		ID:            -1, // Temporary ID
+		Name:          "Immediate_Trigger",
+		Command:       command,
+		Args:          args,
+		RestartOnExit: false,
+	}
+	s.RunProgram(p)
+}
+
 // Stop halts the cron scheduler
 func (s *Scheduler) Stop() {
 	s.Cron.Stop()

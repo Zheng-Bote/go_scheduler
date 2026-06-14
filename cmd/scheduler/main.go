@@ -115,6 +115,7 @@ func main() {
 		Port:      schedCfg.HTTPPort,
 		Admins:    dbCfg.Admins,
 		KEK:       []byte(password),
+		UploadDir: dbCfg.UploadDir,
 		Scheduler: sched,
 	}
 	if err := httpServer.Start(); err != nil {

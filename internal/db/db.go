@@ -179,7 +179,12 @@ func (r *Repository) GetEnabledPrograms(ctx context.Context) ([]ScheduledProgram
 // CreateProgramRun initializes a new program run entry
 func (r *Repository) CreateProgramRun(ctx context.Context, programID int, pid int) (int, error) {
 	var id int
-	err := r.Pool.QueryRow(ctx, "INSERT INTO program_runs (program_id, pid, started_at) VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id", programID, pid).Scan(&id)
+	var err error
+	if programID <= 0 {
+		err = r.Pool.QueryRow(ctx, "INSERT INTO program_runs (pid, started_at) VALUES ($1, CURRENT_TIMESTAMP) RETURNING id", pid).Scan(&id)
+	} else {
+		err = r.Pool.QueryRow(ctx, "INSERT INTO program_runs (program_id, pid, started_at) VALUES ($1, $2, CURRENT_TIMESTAMP) RETURNING id", programID, pid).Scan(&id)
+	}
 	return id, err
 }
 

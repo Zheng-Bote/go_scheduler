@@ -69,6 +69,7 @@ Create a `config.json` (see `example_config.json` for a template):
   "password": "your-password",
   "database": "your-dbname",
   "log_level": "DEBUG",
+  "upload_dir": "/tmp/mitm_uploads",
   "admins": [
     {
       "username": "admin1",

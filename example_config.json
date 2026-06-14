@@ -5,6 +5,7 @@
   "password": "your_secure_password",
   "database": "scheduler_db",
   "log_level": "DEBUG",
+  "upload_dir": "/tmp/mitm_uploads",
   "admins": [
     {
       "username": "admin1",

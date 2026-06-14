@@ -38,6 +38,7 @@ import (
 // SchedulerInterface allows the HTTP server to trigger reloads
 type SchedulerInterface interface {
 	Reload(ctx context.Context) error
+	RunImmediateJob(ctx context.Context, command string, args []byte)
 }
 
 // Server handles health, info, and admin HTTP requests
@@ -46,6 +47,7 @@ type Server struct {
 	Port      int
 	Admins    []config.AdminUser
 	KEK       []byte
+	UploadDir string
 	Scheduler SchedulerInterface
 }
 
@@ -57,6 +59,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/admin/update-jobs", s.handleUpdateJobs)
 	mux.HandleFunc("/admin/jobs", s.handleGetJobs)
 	mux.HandleFunc("/admin/delete-job", s.handleDeleteJob)
+	mux.HandleFunc("/admin/upload/source_file", s.handleUploadFile)
 	mux.HandleFunc("/admin/logs/system", s.handleDownloadSystemLogs)
 	mux.HandleFunc("/admin/logs/job-audit", s.handleDownloadJobAuditLogs)
 	mux.HandleFunc("/admin/logs/admin-audit", s.handleDownloadAdminAuditLogs)
